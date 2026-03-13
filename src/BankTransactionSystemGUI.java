@@ -56,11 +56,12 @@ depositButton.addActionListener(new ActionListener() {
     account.deposit(amount);
 
     SwingUtilities.invokeLater(new Runnable() {
-        @Override
-        public void run() {
-            balanceLabel.setText("Balance: " + account.getBalance());
-        }
-    });
+    @Override
+    public void run() {
+        balanceLabel.setText("Balance: " + account.getBalance());
+        depositField.setText("");
+    }
+});
 }).start();
 
         } catch (NumberFormatException ex) {
@@ -91,12 +92,13 @@ withdrawButton.addActionListener(new ActionListener() {
             new Thread(() -> {
     account.withdraw(amount);
 
-    SwingUtilities.invokeLater(new Runnable() {
-        @Override
-        public void run() {
-            balanceLabel.setText("Balance: " + account.getBalance());
-        }
-    });
+   SwingUtilities.invokeLater(new Runnable() {
+    @Override
+    public void run() {
+        balanceLabel.setText("Balance: " + account.getBalance());
+        withdrawField.setText("");
+    }
+});
 }).start();
 
         } catch (NumberFormatException ex) {
