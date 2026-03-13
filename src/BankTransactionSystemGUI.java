@@ -34,23 +34,59 @@ public class BankTransactionSystemGUI {
         frame.setVisible(true);
 
         // Action for deposit
-        depositButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                double amount = Double.parseDouble(depositField.getText());
-                new Thread(() -> account.deposit(amount)).start();
-                balanceLabel.setText("Balance: " + account.getBalance());
+depositButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String input = depositField.getText().trim();
+
+        if (input.isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "Please enter a deposit amount.");
+            return;
+        }
+
+        try {
+            double amount = Double.parseDouble(input);
+
+            if (amount <= 0) {
+                JOptionPane.showMessageDialog(frame, "Please enter a positive amount.");
+                return;
             }
-        });
+
+            new Thread(() -> account.deposit(amount)).start();
+            balanceLabel.setText("Balance: " + account.getBalance());
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(frame, "Invalid input. Please enter numbers only.");
+        }
+    }
+});
 
         // Action for withdrawal
-        withdrawButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                double amount = Double.parseDouble(withdrawField.getText());
-                new Thread(() -> account.withdraw(amount)).start();
-                balanceLabel.setText("Balance: " + account.getBalance());
+withdrawButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String input = withdrawField.getText().trim();
+
+        if (input.isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "Please enter a withdrawal amount.");
+            return;
+        }
+
+        try {
+            double amount = Double.parseDouble(input);
+
+            if (amount <= 0) {
+                JOptionPane.showMessageDialog(frame, "Please enter a positive amount.");
+                return;
             }
-        });
+
+            new Thread(() -> account.withdraw(amount)).start();
+            balanceLabel.setText("Balance: " + account.getBalance());
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(frame, "Invalid input. Please enter numbers only.");
+        }
+    }
+});
     }
 }
