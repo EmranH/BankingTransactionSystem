@@ -52,8 +52,16 @@ depositButton.addActionListener(new ActionListener() {
                 return;
             }
 
-            new Thread(() -> account.deposit(amount)).start();
+           new Thread(() -> {
+    account.deposit(amount);
+
+    SwingUtilities.invokeLater(new Runnable() {
+        @Override
+        public void run() {
             balanceLabel.setText("Balance: " + account.getBalance());
+        }
+    });
+}).start();
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(frame, "Invalid input. Please enter numbers only.");
@@ -80,8 +88,16 @@ withdrawButton.addActionListener(new ActionListener() {
                 return;
             }
 
-            new Thread(() -> account.withdraw(amount)).start();
+            new Thread(() -> {
+    account.withdraw(amount);
+
+    SwingUtilities.invokeLater(new Runnable() {
+        @Override
+        public void run() {
             balanceLabel.setText("Balance: " + account.getBalance());
+        }
+    });
+}).start();
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(frame, "Invalid input. Please enter numbers only.");
