@@ -1,194 +1,148 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 
+/**
+ * Simple GUI for interacting with a BankAccount.
+ * Clean Code improvements: meaningful names, extracted helper methods,
+ * proper exception handling, and UI updates on the Event Dispatch Thread.
+ */
 public class BankTransactionSystemGUI {
 
-    private static BankAccount account = new BankAccount(1000);
+    private final Bank bank;
+    private String currentAccountId;
+    private JLabel balanceLabel;
 
-    public static void main(String[] args) {
+    public BankTransactionSystemGUI() {
 
-        JFrame frame = new JFrame("Bank Account");
-        frame.setSize(600, 400);
+        // Create the bank system
+        bank = new Bank();
+
+        // Create a default account for the user
+        currentAccountId = bank.createAccount(1000);
+
+        createAndShowUI();
+    }
+
+    private void createAndShowUI() {
+
+        JFrame frame = new JFrame("Bank Transaction System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
+        JTextField depositField = new JTextField(10);
+        JTextField withdrawField = new JTextField(10);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10,10,10,10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        // Initialize the balance label
+        double balance = bank.getAccount(currentAccountId).getBalance();
+        balanceLabel = new JLabel("Balance: " + balance);
 
-        // Title
-        JLabel title = new JLabel("BANK ACCOUNT", JLabel.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 24));
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 3;
-        panel.add(title, gbc);
-
-        // Balance Label
-        JLabel balanceText = new JLabel("Current Balance:");
-        balanceText.setFont(new Font("Arial", Font.PLAIN,16));
-
-        gbc.gridy = 1;
-        gbc.gridx = 0;
-        gbc.gridwidth = 1;
-        panel.add(balanceText, gbc);
-
-        // Balance Display
-        JLabel balanceAmount = new JLabel("£" + account.getBalance(), JLabel.CENTER);
-        balanceAmount.setOpaque(true);
-        balanceAmount.setBackground(Color.LIGHT_GRAY);
-        balanceAmount.setFont(new Font("Arial", Font.BOLD,18));
-
-        gbc.gridx = 1;
-        gbc.weightx = 1;
-        panel.add(balanceAmount, gbc);
-
-        // Withdraw Title
-        JLabel withdrawTitle = new JLabel("Withdraw", JLabel.CENTER);
-        withdrawTitle.setFont(new Font("Arial", Font.BOLD,18));
-
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        gbc.gridwidth = 3;
-        gbc.weightx = 0;
-        panel.add(withdrawTitle, gbc);
-
-        // Withdraw Field
-        JTextField withdrawField = new JTextField();
-
-        gbc.gridy = 3;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1;
-        panel.add(withdrawField, gbc);
-
-        // Withdraw Button
+        JButton depositButton = new JButton("Deposit");
         JButton withdrawButton = new JButton("Withdraw");
 
-        gbc.gridx = 2;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
-        panel.add(withdrawButton, gbc);
+        JButton newAccountButton = new JButton("Create Account");
 
-        // Deposit Title
-        JLabel depositTitle = new JLabel("Deposit", JLabel.CENTER);
-        depositTitle.setFont(new Font("Arial", Font.BOLD,18));
+        // Creates a new account and switches the GUI to it
+        newAccountButton.addActionListener(e -> {
 
-        gbc.gridy = 4;
-        gbc.gridx = 0;
-        gbc.gridwidth = 3;
-        panel.add(depositTitle, gbc);
+            currentAccountId = bank.createAccount(0);
 
-        // Deposit Field
-        JTextField depositField = new JTextField();
+            updateBalanceLabel();
 
-        gbc.gridy = 5;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1;
-        panel.add(depositField, gbc);
+            JOptionPane.showMessageDialog(
+                    null,
+                    "New account created: " + currentAccountId
+            );
+        });
 
-        // Deposit Button
-        JButton depositButton = new JButton("Deposit");
+        JButton historyButton = new JButton("View Transactions");
 
-        gbc.gridx = 2;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
-        panel.add(depositButton, gbc);
+        depositButton.addActionListener(e -> handleDeposit(depositField));
+        withdrawButton.addActionListener(e -> handleWithdrawal(withdrawField));
+        historyButton.addActionListener(e -> showTransactionHistory());
 
-        // Status Label
-        JLabel statusLabel = new JLabel(" ", JLabel.CENTER);
-        statusLabel.setFont(new Font("Arial", Font.ITALIC,14));
+        JPanel panel = new JPanel(new GridLayout(5, 2));
 
-        gbc.gridy = 6;
-        gbc.gridx = 0;
-        gbc.gridwidth = 3;
-        panel.add(statusLabel, gbc);
+        panel.add(new JLabel("Deposit Amount:"));
+        panel.add(depositField);
+        panel.add(depositButton);
+
+        panel.add(new JLabel("Withdraw Amount:"));
+        panel.add(withdrawField);
+        panel.add(withdrawButton);
+
+        panel.add(balanceLabel);
+        panel.add(historyButton);
+
+        panel.add(newAccountButton);
 
         frame.add(panel);
+        frame.pack();
         frame.setVisible(true);
+    }
 
-        // Deposit Action
-        depositButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+    private void handleDeposit(JTextField depositField) {
+        try {
+            double amount = Double.parseDouble(depositField.getText());
+            bank.getAccount(currentAccountId).deposit(amount);
+            updateBalanceLabel();
+        } catch (NumberFormatException ex) {
+            showError("Please enter a valid number.");
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
+        }
+    }
 
-                String input = depositField.getText().trim();
+    private void handleWithdrawal(JTextField withdrawField) {
+        try {
+            double amount = Double.parseDouble(withdrawField.getText());
+            bank.getAccount(currentAccountId).withdraw(amount);
+            updateBalanceLabel();
+        } catch (NumberFormatException ex) {
+            showError("Please enter a valid number.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            showError(ex.getMessage());
+        }
+    }
 
-                if (input.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame, "Please enter a deposit amount.");
-                    return;
-                }
+    private void updateBalanceLabel() {
+        double balance = bank.getAccount(currentAccountId).getBalance();
+        balanceLabel.setText("Balance: " + balance);
+    }
 
-                try {
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
 
-                    double amount = Double.parseDouble(input);
+    /**
+     * Displays all recorded transactions in a scrollable popup window.
+     */
+    private void showTransactionHistory() {
 
-                    if (amount <= 0) {
-                        JOptionPane.showMessageDialog(frame, "Please enter a positive amount.");
-                        return;
-                    }
+        // StringBuilder efficiently builds a large text output
+        StringBuilder history = new StringBuilder();
 
-                    new Thread(() -> {
+        // Loop through each stored transaction
+        for (Transaction t : bank.getAccount(currentAccountId).getTransactionHistory()) {
+            history.append(t.toString()).append("\n");
+        }
 
-                        account.deposit(amount);
+        // Display transactions inside a text area
+        JTextArea textArea = new JTextArea(history.toString());
+        textArea.setEditable(false);
 
-                        SwingUtilities.invokeLater(() -> {
-                            balanceAmount.setText("£" + account.getBalance());
-                            statusLabel.setText("Deposit successful.");
-                            depositField.setText("");
-                        });
+        // ScrollPane allows the history to be scrollable if it becomes long
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(400, 300));
 
-                    }).start();
+        // Show the transaction history in a dialog window
+        JOptionPane.showMessageDialog(
+                null,
+                scrollPane,
+                "Transaction History",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
 
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(frame, "Invalid input. Please enter numbers only.");
-                }
-            }
-        });
-
-        // Withdraw Action
-        withdrawButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
-                String input = withdrawField.getText().trim();
-
-                if (input.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame, "Please enter a withdrawal amount.");
-                    return;
-                }
-
-                try {
-
-                    double amount = Double.parseDouble(input);
-
-                    if (amount <= 0) {
-                        JOptionPane.showMessageDialog(frame, "Please enter a positive amount.");
-                        return;
-                    }
-
-                    new Thread(() -> {
-
-                        account.withdraw(amount);
-
-                        SwingUtilities.invokeLater(() -> {
-                            balanceAmount.setText("£" + account.getBalance());
-                            statusLabel.setText("Withdrawal processed.");
-                            withdrawField.setText("");
-                        });
-
-                    }).start();
-
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(frame, "Invalid input. Please enter numbers only.");
-                }
-            }
-        });
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(BankTransactionSystemGUI::new);
     }
 }
