@@ -97,12 +97,12 @@ public class Bank implements Serializable{
     }
 
     /**
-     * Saves all accounts to a file.
+     * Saves the entire bank system to file.
      */
     public void saveToFile() {
+
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("bank.dat"))) {
 
-            // Save entire Bank object
             out.writeObject(this);
 
         } catch (IOException e) {
@@ -111,17 +111,19 @@ public class Bank implements Serializable{
     }
 
     /**
-     * Loads accounts from file at startup.
+     * Loads the bank system from file.
+     * If file does not exist, returns a new empty bank.
      */
-    @SuppressWarnings("unchecked")
     public static Bank loadFromFile() {
 
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("bank.dat"))) {
 
+            // Read entire Bank object
             return (Bank) in.readObject();
 
         } catch (Exception e) {
-            // First run → return new empty bank
+
+            // First run OR file missing → return new bank
             return new Bank();
         }
     }

@@ -1,3 +1,4 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -6,7 +7,7 @@ import java.util.List;
  * Represents a bank account that supports deposits, withdrawals,
  * and stores a history of transactions.
  */
-public class BankAccount {
+public class BankAccount implements Serializable {
 
     // Current balance of the account
     private double balance;
