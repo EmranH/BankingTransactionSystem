@@ -31,6 +31,15 @@ public class BankTransactionSystemGUI {
         JTextField depositField = new JTextField(10);
         JTextField withdrawField = new JTextField(10);
 
+        // Input fields for transfer functionality
+        JTextField fromField = new JTextField(10);
+        JTextField toField = new JTextField(10);
+
+        JTextField transferAmountField = new JTextField(10);
+
+        // Pre-fill "from" with current account
+        fromField.setText(currentAccountId);
+
         // Initialize the balance label
         double balance = bank.getAccount(currentAccountId).getBalance();
         balanceLabel = new JLabel("Balance: " + balance);
@@ -38,12 +47,17 @@ public class BankTransactionSystemGUI {
         JButton depositButton = new JButton("Deposit");
         JButton withdrawButton = new JButton("Withdraw");
 
+        // Button to trigger transfer
+        JButton transferButton = new JButton("Transfer");
+
         JButton newAccountButton = new JButton("Create Account");
+
 
         // Creates a new account and switches the GUI to it
         newAccountButton.addActionListener(e -> {
 
             currentAccountId = bank.createAccount(0);
+            fromField.setText(currentAccountId);
 
             updateBalanceLabel();
 
@@ -59,7 +73,29 @@ public class BankTransactionSystemGUI {
         withdrawButton.addActionListener(e -> handleWithdrawal(withdrawField));
         historyButton.addActionListener(e -> showTransactionHistory());
 
-        JPanel panel = new JPanel(new GridLayout(5, 2));
+        /**
+         * Handles transferring money between accounts.
+         */
+        transferButton.addActionListener(e -> {
+            try {
+                String fromId = fromField.getText().trim();
+                String toId = toField.getText().trim();
+                double amount = Double.parseDouble(transferAmountField.getText());
+
+                bank.transfer(fromId, toId, amount);
+
+                updateBalanceLabel();
+
+                JOptionPane.showMessageDialog(null, "Transfer successful!");
+
+            } catch (NumberFormatException ex) {
+                showError("Please enter a valid number.");
+            } catch (IllegalArgumentException | IllegalStateException ex) {
+                showError(ex.getMessage());
+            }
+        });
+
+        JPanel panel = new JPanel(new GridLayout(8, 2));
 
         panel.add(new JLabel("Deposit Amount:"));
         panel.add(depositField);
@@ -68,6 +104,18 @@ public class BankTransactionSystemGUI {
         panel.add(new JLabel("Withdraw Amount:"));
         panel.add(withdrawField);
         panel.add(withdrawButton);
+
+        // Transfer section
+        panel.add(new JLabel("From Account ID:"));
+        panel.add(fromField);
+
+        panel.add(new JLabel("To Account ID:"));
+        panel.add(toField);
+
+        panel.add(new JLabel("Transfer Amount:"));
+        panel.add(transferAmountField);
+
+        panel.add(transferButton);
 
         panel.add(balanceLabel);
         panel.add(historyButton);
@@ -141,6 +189,8 @@ public class BankTransactionSystemGUI {
                 JOptionPane.INFORMATION_MESSAGE
         );
     }
+
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(BankTransactionSystemGUI::new);

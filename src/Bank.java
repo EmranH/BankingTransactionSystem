@@ -50,9 +50,6 @@ public class Bank {
     }
 
     /**
-     * Transfers money from one account to another.
-     */
-    /**
      * Transfers money between two accounts.
      *
      * The operation must be atomic:
@@ -104,7 +101,6 @@ public class Bank {
                 )
         );
     }
-
     /**
      * Generates a unique account ID using UUID.
      * This ensures no two accounts share the same ID.
