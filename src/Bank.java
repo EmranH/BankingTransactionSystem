@@ -1,52 +1,67 @@
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.io.*;
 
 /**
  * Bank class responsible for managing multiple accounts.
  * Uses a Map where the key is the account ID and the value is the BankAccount object.
  */
-public class Bank {
+public class Bank implements Serializable{
 
-    // Stores all accounts in the bank
-    private final Map<String, BankAccount> accounts;
+    // Stores all accounts in the bank by username
+    private Map<String, BankAccount> accountsByUsername;
 
     public Bank() {
         // HashMap allows fast lookup of accounts by ID
-        this.accounts = new HashMap<>();
+        this.accountsByUsername = new HashMap<>();
     }
 
     /**
-     * Creates a new bank account with an automatically generated ID.
-     * @param initialBalance starting balance
-     * @return account ID
+     * Creates a new user account.
      */
-    public synchronized String createAccount(double initialBalance) {
+    public synchronized String createAccount(String username, String pin, double initialBalance) {
 
-        // Generate a unique account ID
+        if (accountsByUsername.containsKey(username)) {
+            throw new IllegalArgumentException("Username already exists.");
+        }
+
         String accountId = generateAccountId();
 
-        // Create the new account
-        BankAccount account = new BankAccount(initialBalance);
+        BankAccount account = new BankAccount(accountId, username, pin, initialBalance);
 
-        // Store it in the map
-        accounts.put(accountId, account);
+        accountsByUsername.put(username, account);
 
         return accountId;
     }
 
     /**
-     * Retrieves an account by ID.
+     * Authenticates a user and returns their account.
      */
-    public synchronized BankAccount getAccount(String accountId) {
+    public synchronized BankAccount login(String username, String pin) {
 
-        BankAccount account = accounts.get(accountId);
+        BankAccount account = accountsByUsername.get(username);
 
-        if (account == null) {
-            throw new IllegalArgumentException("Account not found: " + accountId);
+        if (account == null || !account.authenticate(username, pin)) {
+            throw new IllegalArgumentException("Invalid username or PIN.");
         }
 
         return account;
+    }
+
+    /**
+     * Finds an account using its account ID.
+     */
+    private BankAccount getAccountById(String accountId) {
+
+        // Loop through all accounts to find matching ID
+        for (BankAccount account : accountsByUsername.values()) {
+            if (account.getAccountId().equals(accountId)) {
+                return account;
+            }
+        }
+
+        throw new IllegalArgumentException("Account not found: " + accountId);
     }
 
     /**
@@ -56,51 +71,22 @@ public class Bank {
      * - If any part fails, the transfer does not complete.
      * - Prevents inconsistent states where money disappears or duplicates.
      */
+
     public synchronized void transfer(String fromId, String toId, double amount) {
 
-        // Validate that both accounts exist
-        BankAccount fromAccount = accounts.get(fromId);
-        BankAccount toAccount = accounts.get(toId);
+        // Find accounts by account ID
+        BankAccount fromAccount = getAccountById(fromId);
+        BankAccount toAccount = getAccountById(toId);
 
-        if (fromAccount == null) {
-            throw new IllegalArgumentException("Source account not found: " + fromId);
-        }
-
-        if (toAccount == null) {
-            throw new IllegalArgumentException("Destination account not found: " + toId);
-        }
-
-        // Prevent transferring to the same account
         if (fromId.equals(toId)) {
             throw new IllegalArgumentException("Cannot transfer to the same account.");
         }
 
-        // Perform withdrawal first (this may throw insufficient funds exception)
+        // Perform atomic transfer
         fromAccount.withdraw(amount);
-
-        // Deposit into the receiving account
         toAccount.deposit(amount);
-
-        /*
-         * Record additional transaction notes to clarify that this was a transfer.
-         * This helps when auditing the transaction history later.
-         */
-        fromAccount.recordTransaction(
-                new Transaction(
-                        Transaction.Type.WITHDRAWAL,
-                        amount,
-                        "Transfer to account " + toId
-                )
-        );
-
-        toAccount.recordTransaction(
-                new Transaction(
-                        Transaction.Type.DEPOSIT,
-                        amount,
-                        "Transfer from account " + fromId
-                )
-        );
     }
+
     /**
      * Generates a unique account ID using UUID.
      * This ensures no two accounts share the same ID.
@@ -108,5 +94,35 @@ public class Bank {
     private String generateAccountId() {
 
         return "ACC-" + UUID.randomUUID().toString().substring(0,8);
+    }
+
+    /**
+     * Saves all accounts to a file.
+     */
+    public void saveToFile() {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("bank.dat"))) {
+
+            // Save entire Bank object
+            out.writeObject(this);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Loads accounts from file at startup.
+     */
+    @SuppressWarnings("unchecked")
+    public static Bank loadFromFile() {
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("bank.dat"))) {
+
+            return (Bank) in.readObject();
+
+        } catch (Exception e) {
+            // First run → return new empty bank
+            return new Bank();
+        }
     }
 }

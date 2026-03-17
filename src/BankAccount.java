@@ -14,13 +14,35 @@ public class BankAccount {
     // List used to store all past transactions
     private final List<Transaction> transactions;
 
+    // User identity fields
+    private final String username;
+    private final String pin;
+    private final String accountId;
+
     /**
-     * Constructor initializes the account with an initial balance
-     * and prepares an empty list for transaction history.
+     * Creates a bank account with login credentials.
      */
-    public BankAccount(double initialBalance) {
+    public BankAccount(String accountId, String username, String pin, double initialBalance) {
+        this.accountId = accountId;
+        this.username = username;
+        this.pin = pin;
         this.balance = initialBalance;
         this.transactions = new ArrayList<>();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getAccountId() {
+        return accountId;
+    }
+
+    /**
+     * Verifies login credentials.
+     */
+    public boolean authenticate(String username, String pin) {
+        return this.username.equals(username) && this.pin.equals(pin);
     }
 
     /**

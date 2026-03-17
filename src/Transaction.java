@@ -1,3 +1,4 @@
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -5,7 +6,7 @@ import java.time.LocalDateTime;
  * A transaction records what happened in the account
  * (deposit or withdrawal), the amount, and when it occurred.
  */
-public class Transaction {
+public class Transaction implements Serializable {
 
     /**
      * Enum used to clearly define the type of transaction.
