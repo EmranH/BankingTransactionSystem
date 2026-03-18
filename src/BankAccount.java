@@ -6,6 +6,7 @@ import java.util.List;
 /**
  * Represents a bank account that supports deposits, withdrawals,
  * and stores a history of transactions.
+ * Each account also has an associated SavingsAccount.
  */
 public class BankAccount implements Serializable {
 
@@ -20,8 +21,13 @@ public class BankAccount implements Serializable {
     private final String pin;
     private final String accountId;
 
+    // Each user has a savings account linked to their main account
+    private final SavingsAccount savingsAccount;
+
     /**
      * Creates a bank account with login credentials.
+     * Automatically creates a linked SavingsAccount with a zero starting balance.
+     * A separate account ID is generated for the savings account by appending "-SAV".
      */
     public BankAccount(String accountId, String username, String pin, double initialBalance) {
         this.accountId = accountId;
@@ -29,6 +35,9 @@ public class BankAccount implements Serializable {
         this.pin = pin;
         this.balance = initialBalance;
         this.transactions = new ArrayList<>();
+
+        // Automatically create a savings account linked to this account
+        this.savingsAccount = new SavingsAccount(accountId + "-SAV", username, pin, 0);
     }
 
     public String getUsername() {
@@ -37,6 +46,10 @@ public class BankAccount implements Serializable {
 
     public String getAccountId() {
         return accountId;
+    }
+
+    public SavingsAccount getSavingsAccount() {
+        return savingsAccount;
     }
 
     /**
