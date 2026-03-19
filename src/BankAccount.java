@@ -37,12 +37,10 @@ public class BankAccount implements Serializable {
         this.transactions = new ArrayList<>();
 
         // Automatically create a savings account linked to this account
-        this.savingsAccount = new SavingsAccount(accountId + "-SAV", username, pin, 0);
+        this.savingsAccount = accountId.endsWith("-SAV") ? null : new SavingsAccount(accountId + "-SAV", username, pin, 0);
     }
 
-    public String getUsername() {
-        return username;
-    }
+    public String getUsername() { return username; }
 
     public String getAccountId() {
         return accountId;
