@@ -307,7 +307,7 @@ public class BankTransactionSystemGUI {
      * Updates the savings account balance label dynamically.
      */
     private void updateSavingsBalanceLabel() {
-        savingsBalanceLabel.setText("Savings Balance: £" + currentAccount.getSavingsAccount().getBalance());
+        savingsBalanceLabel.setText("Savings Balance: £" + String.format("%.2f", currentAccount.getSavingsAccount().getBalance()));
     }
 
     /**
