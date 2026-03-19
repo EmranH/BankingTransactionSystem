@@ -8,7 +8,7 @@ import java.time.LocalDate;
  * - Limits the number of withdrawals allowed per calendar month.
  * - Interest rate is higher to encourage saving.
  */
-public class SavingsAccount extends BankAccount {
+public class SavingsAccount extends BankAccount implements Serializable
 
     // Annual interest rate expressed as a decimal (0.02 = 2% monthly)
     private double interestRate = 0.02;
