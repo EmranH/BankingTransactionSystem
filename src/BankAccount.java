@@ -18,29 +18,30 @@ public class BankAccount implements Serializable {
 
     // User identity fields
     private final String username;
-    private final String pin;
     private final String accountId;
 
     // Each user has a savings account linked to their main account
     private final SavingsAccount savingsAccount;
 
     /**
-     * Creates a bank account with login credentials.
+     * Creates a bank account.
      * Automatically creates a linked SavingsAccount with a zero starting balance.
-     * A separate account ID is generated for the savings account by appending "-SAV".
      */
-    public BankAccount(String accountId, String username, String pin, double initialBalance) {
+    public BankAccount(String accountId, String username, double initialBalance) {
         this.accountId = accountId;
         this.username = username;
-        this.pin = pin;
         this.balance = initialBalance;
         this.transactions = new ArrayList<>();
 
         // Automatically create a savings account linked to this account
-        this.savingsAccount = accountId.endsWith("-SAV") ? null : new SavingsAccount(accountId + "-SAV", username, pin, 0);
+        this.savingsAccount = accountId.endsWith("-SAV")
+                ? null
+                : new SavingsAccount(accountId + "-SAV", username, 0);
     }
 
-    public String getUsername() { return username; }
+    public String getUsername() {
+        return username;
+    }
 
     public String getAccountId() {
         return accountId;
@@ -51,26 +52,13 @@ public class BankAccount implements Serializable {
     }
 
     /**
-     * Verifies login credentials.
-     */
-    public boolean authenticate(String username, String pin) {
-        return this.username.equals(username) && this.pin.equals(pin);
-    }
-
-    /**
      * Adds money to the account.
-     * The method is synchronized so multiple threads cannot
-     * modify the balance at the same time.
      */
     public synchronized void deposit(double amount) {
-
-        // Validate the amount before processing
         validateAmount(amount);
 
-        // Update account balance
         balance += amount;
 
-        // Record the deposit in the transaction history
         recordTransaction(
                 new Transaction(
                         Transaction.Type.DEPOSIT,
@@ -84,19 +72,14 @@ public class BankAccount implements Serializable {
      * Removes money from the account if sufficient funds exist.
      */
     public synchronized void withdraw(double amount) {
-
-        // Ensure withdrawal amount is valid
         validateAmount(amount);
 
-        // Prevent withdrawing more money than available
         if (balance < amount) {
             throw new IllegalStateException("Insufficient funds for withdrawal.");
         }
 
-        // Deduct money from the balance
         balance -= amount;
 
-        // Record the withdrawal in the transaction history
         recordTransaction(
                 new Transaction(
                         Transaction.Type.WITHDRAWAL,
@@ -108,7 +91,6 @@ public class BankAccount implements Serializable {
 
     /**
      * Returns the current balance.
-     * Method is synchronized to ensure consistency in multithreaded environments.
      */
     public synchronized double getBalance() {
         return balance;
@@ -116,16 +98,13 @@ public class BankAccount implements Serializable {
 
     /**
      * Returns a read-only version of the transaction history.
-     * Collections.unmodifiableList prevents external code
-     * from modifying the internal transaction list.
      */
     public synchronized List<Transaction> getTransactionHistory() {
         return Collections.unmodifiableList(transactions);
     }
 
     /**
-     * Internal helper method responsible for storing a transaction.
-     * Keeping this logic separate improves readability and maintainability.
+     * Stores a transaction in the history.
      */
     public synchronized void recordTransaction(Transaction transaction) {
         transactions.add(transaction);
@@ -133,7 +112,6 @@ public class BankAccount implements Serializable {
 
     /**
      * Ensures the amount entered is valid.
-     * Prevents negative or zero transactions.
      */
     private void validateAmount(double amount) {
         if (amount <= 0) {
