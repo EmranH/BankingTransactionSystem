@@ -27,7 +27,7 @@ public class BankTransactionSystemGUI {
     }
 
     /**
-     * Displays login/register screen before accessing the system.
+     * Displays that handles only login process
      */
     private void showLoginScreen() {
 
@@ -42,7 +42,7 @@ public class BankTransactionSystemGUI {
         int option = JOptionPane.showConfirmDialog(
                 null,
                 message,
-                "Login or Register",
+                "Login",
                 JOptionPane.OK_CANCEL_OPTION
         );
 
@@ -51,40 +51,116 @@ public class BankTransactionSystemGUI {
         }
 
         String username = usernameField.getText().trim();
-        String pin = new String(pinField.getPassword());
+        String pin = new String(pinField.getPassword()).trim();
 
-        try {
-            // Try login
-            currentAccount = bank.login(username, pin);
+        if (username.isEmpty() || pin.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Username and PIN cannot be empty.");
+            showLoginScreen();
+            return;
+        }
 
-        } catch (Exception e) {
+        boolean validLogin = UserDAO.loginUser(username, pin);
 
-            // If login fails → ask to register
+        if (validLogin) {
+            try {
+                currentAccount = bank.login(username, pin);
+            } catch (Exception e) {
+                try {
+                    bank.createAccount(username, pin, 0);
+                    currentAccount = bank.login(username, pin);
+                    bank.saveToFile();
+                } catch (Exception ex) {
+                    showError("Login worked in database, but bank account could not be loaded.");
+                    return;
+                }
+            }
+
+            createMainUI();
+
+        } else {
             int choice = JOptionPane.showConfirmDialog(
                     null,
-                    "User not found. Create new account?",
-                    "Register",
+                    "Login failed.\nWould you like to create a new account?",
+                    "Account Not Found",
                     JOptionPane.YES_NO_OPTION
             );
 
             if (choice == JOptionPane.YES_OPTION) {
-                bank.createAccount(username, pin, 0);
-                currentAccount = bank.login(username, pin);
-                bank.saveToFile();
+                showRegisterScreen();
             } else {
                 showLoginScreen();
-                return;
             }
         }
+    }
 
-        createMainUI();
+    /**
+     * Display that handles the registration process
+     */
+    private void showRegisterScreen() {
+
+        JTextField usernameField = new JTextField();
+        JPasswordField pinField = new JPasswordField();
+        JPasswordField confirmPinField = new JPasswordField();
+
+        Object[] message = {
+                "Choose Username:", usernameField,
+                "Choose PIN:", pinField,
+                "Confirm PIN:", confirmPinField
+        };
+
+        int option = JOptionPane.showConfirmDialog(
+                null,
+                message,
+                "Create New Account",
+                JOptionPane.OK_CANCEL_OPTION
+        );
+
+        if (option != JOptionPane.OK_OPTION) {
+            showLoginScreen();
+            return;
+        }
+
+        String username = usernameField.getText().trim();
+        String pin = new String(pinField.getPassword()).trim();
+        String confirmPin = new String(confirmPinField.getPassword()).trim();
+
+        if (username.isEmpty() || pin.isEmpty() || confirmPin.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "All fields are required.");
+            showRegisterScreen();
+            return;
+        }
+
+        if (!pin.equals(confirmPin)) {
+            JOptionPane.showMessageDialog(null, "PINs do not match.");
+            showRegisterScreen();
+            return;
+        }
+
+        boolean registered = UserDAO.registerUser(username, pin);
+
+        if (registered) {
+            try {
+                bank.createAccount(username, pin, 0);
+                bank.saveToFile();
+            } catch (Exception e) {
+                showError("User added to database, but bank account could not be created.");
+                return;
+            }
+
+            JOptionPane.showMessageDialog(null, "Account created successfully. Please log in.");
+            showLoginScreen();
+
+        } else {
+            JOptionPane.showMessageDialog(null, "Username already exists. Please choose another username.");
+            showRegisterScreen();
+        }
     }
 
     /**
      * Main banking interface after login.
      * Split into two sections:
-     *  Top: main account operations (deposit, withdraw, transfer)
-     *  Bottom: savings account operations (deposit, withdraw, balance)
+     * Top: main account operations (deposit, withdraw, transfer)
+     * Bottom: savings account operations (deposit, withdraw, balance)
      */
     private void createMainUI() {
 
