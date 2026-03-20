@@ -83,24 +83,23 @@ public class BankTransactionSystemGUI {
 
         // Login logic
         loginBtn.addActionListener(e -> {
-            if (UserDAO.loginUser(username.getText(), new String(password.getPassword()))) {
+            try {
                 currentAccount = bank.getAccount(username.getText());
                 updateBalance();
                 updateSavings();
                 cardLayout.show(mainPanel, "DASHBOARD");
-            } else {
+            } catch (Exception ex) {
                 JOptionPane.showMessageDialog(frame, "Login failed");
             }
         });
 
         // Register logic
         registerBtn.addActionListener(e -> {
-            boolean success = UserDAO.registerUser(username.getText(), new String(password.getPassword()));
-            if (success) {
+            try {
                 bank.createAccount(username.getText(), 0);
                 bank.saveToFile();
                 JOptionPane.showMessageDialog(frame, "Account created!");
-            } else {
+            } catch (Exception ex) {
                 JOptionPane.showMessageDialog(frame, "Username exists");
             }
         });
