@@ -174,55 +174,160 @@ public class BankTransactionSystemGUI {
     // ---------- MAIN UI ----------
     private void createMainUI() {
 
-        frame = new JFrame("Bank - " + currentAccount.getUsername());
+        frame = new JFrame("Bank System - " + currentAccount.getUsername());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JTextField depositField = new JTextField(10);
         JTextField withdrawField = new JTextField(10);
 
+        JTextField fromField = new JTextField(10);
+        JTextField toField = new JTextField(10);
+        JTextField transferField = new JTextField(10);
+
+        fromField.setText(currentAccount.getAccountId());
+
         balanceLabel = new JLabel();
         updateBalanceLabel();
 
-        JButton deposit = new JButton("Deposit");
-        JButton withdraw = new JButton("Withdraw");
-        JButton logout = new JButton("Logout");
+        JButton depositButton = new JButton("Deposit");
+        JButton withdrawButton = new JButton("Withdraw");
+        JButton transferButton = new JButton("Transfer");
+        JButton historyButton = new JButton("View Transactions");
+        JButton logoutButton = new JButton("Logout");
 
-        deposit.addActionListener(e -> {
+        // ---- Savings ----
+        JTextField savingsDepositField = new JTextField(10);
+        JTextField savingsWithdrawField = new JTextField(10);
+
+        savingsBalanceLabel = new JLabel();
+        updateSavingsBalanceLabel();
+
+        JButton savingsDepositButton = new JButton("Deposit to Savings");
+        JButton savingsWithdrawButton = new JButton("Withdraw from Savings");
+        JButton savingsHistoryButton = new JButton("View Savings Transactions");
+
+        // ---------- ACTIONS ----------
+
+        depositButton.addActionListener(e -> {
             try {
                 currentAccount.deposit(Double.parseDouble(depositField.getText()));
                 bank.saveToFile();
                 updateBalanceLabel();
-            } catch (Exception ex) { showError(ex.getMessage()); }
+            } catch (Exception ex) {
+                showError(ex.getMessage());
+            }
         });
 
-        withdraw.addActionListener(e -> {
+        withdrawButton.addActionListener(e -> {
             try {
                 currentAccount.withdraw(Double.parseDouble(withdrawField.getText()));
                 bank.saveToFile();
                 updateBalanceLabel();
-            } catch (Exception ex) { showError(ex.getMessage()); }
+            } catch (Exception ex) {
+                showError(ex.getMessage());
+            }
         });
 
-        logout.addActionListener(e -> {
+        transferButton.addActionListener(e -> {
+            try {
+                bank.transfer(
+                        fromField.getText().trim(),
+                        toField.getText().trim(),
+                        Double.parseDouble(transferField.getText())
+                );
+                bank.saveToFile();
+                updateBalanceLabel();
+                JOptionPane.showMessageDialog(null, "Transfer successful!");
+            } catch (Exception ex) {
+                showError(ex.getMessage());
+            }
+        });
+
+        historyButton.addActionListener(e -> showTransactionHistory());
+
+        logoutButton.addActionListener(e -> {
             frame.dispose();
             showLoginScreen();
         });
 
-        JPanel panel = new JPanel(new GridLayout(6,2,5,5));
+        // ---- Savings actions ----
 
-        panel.add(new JLabel("Deposit:"));
-        panel.add(depositField);
-        panel.add(deposit);
+        savingsDepositButton.addActionListener(e -> {
+            try {
+                currentAccount.getSavingsAccount().deposit(Double.parseDouble(savingsDepositField.getText()));
+                bank.saveToFile();
+                updateSavingsBalanceLabel();
+            } catch (Exception ex) {
+                showError(ex.getMessage());
+            }
+        });
 
-        panel.add(new JLabel("Withdraw:"));
-        panel.add(withdrawField);
-        panel.add(withdraw);
+        savingsWithdrawButton.addActionListener(e -> {
+            try {
+                currentAccount.getSavingsAccount().withdraw(Double.parseDouble(savingsWithdrawField.getText()));
+                bank.saveToFile();
+                updateSavingsBalanceLabel();
+            } catch (Exception ex) {
+                showError(ex.getMessage());
+            }
+        });
 
-        panel.add(balanceLabel);
-        panel.add(logout);
+        savingsHistoryButton.addActionListener(e -> showSavingsTransactionHistory());
 
-        frame.add(panel);
-        frame.setSize(400,300);
+        // ---------- LAYOUT ----------
+
+        JPanel mainPanel = new JPanel(new GridLayout(9, 2, 5, 5));
+        mainPanel.setBorder(BorderFactory.createTitledBorder("Main Account"));
+
+        mainPanel.add(new JLabel("Deposit:"));
+        mainPanel.add(depositField);
+        mainPanel.add(depositButton);
+        mainPanel.add(new JLabel());
+
+        mainPanel.add(new JLabel("Withdraw:"));
+        mainPanel.add(withdrawField);
+        mainPanel.add(withdrawButton);
+        mainPanel.add(new JLabel());
+
+        mainPanel.add(new JLabel("From ID:"));
+        mainPanel.add(fromField);
+
+        mainPanel.add(new JLabel("To ID:"));
+        mainPanel.add(toField);
+
+        mainPanel.add(new JLabel("Transfer Amount:"));
+        mainPanel.add(transferField);
+        mainPanel.add(transferButton);
+        mainPanel.add(new JLabel());
+
+        mainPanel.add(balanceLabel);
+        mainPanel.add(historyButton);
+
+        JPanel savingsPanel = new JPanel(new GridLayout(0, 2, 5, 5));
+        savingsPanel.setBorder(BorderFactory.createTitledBorder("Savings"));
+
+        savingsPanel.add(new JLabel("Deposit:"));
+        savingsPanel.add(savingsDepositField);
+        savingsPanel.add(savingsDepositButton);
+        savingsPanel.add(new JLabel());
+
+        savingsPanel.add(new JLabel("Withdraw:"));
+        savingsPanel.add(savingsWithdrawField);
+        savingsPanel.add(savingsWithdrawButton);
+        savingsPanel.add(new JLabel());
+
+        savingsPanel.add(savingsBalanceLabel);
+        savingsPanel.add(savingsHistoryButton);
+
+        JPanel bottom = new JPanel();
+        bottom.add(logoutButton);
+
+        frame.setLayout(new BorderLayout());
+        frame.add(mainPanel, BorderLayout.NORTH);
+        frame.add(savingsPanel, BorderLayout.CENTER);
+        frame.add(bottom, BorderLayout.SOUTH);
+
+        frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
@@ -230,6 +335,38 @@ public class BankTransactionSystemGUI {
     // ---------- HELPERS ----------
     private void updateBalanceLabel() {
         balanceLabel.setText("Balance: £" + currentAccount.getBalance());
+    }
+
+    private void updateSavingsBalanceLabel() {
+        savingsBalanceLabel.setText(
+                "Savings: £" + currentAccount.getSavingsAccount().getBalance()
+        );
+    }
+
+    private void showTransactionHistory() {
+        StringBuilder history = new StringBuilder();
+
+        for (Transaction t : currentAccount.getTransactionHistory()) {
+            history.append(t.toString()).append("\n");
+        }
+
+        JTextArea area = new JTextArea(history.toString());
+        area.setEditable(false);
+
+        JOptionPane.showMessageDialog(frame, new JScrollPane(area), "History", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void showSavingsTransactionHistory() {
+        StringBuilder history = new StringBuilder();
+
+        for (Transaction t : currentAccount.getSavingsAccount().getTransactionHistory()) {
+            history.append(t.toString()).append("\n");
+        }
+
+        JTextArea area = new JTextArea(history.toString());
+        area.setEditable(false);
+
+        JOptionPane.showMessageDialog(frame, new JScrollPane(area), "Savings History", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String msg) {
