@@ -12,8 +12,8 @@ public class BankTransactionSystemGUI {
     private JLabel balanceLabel;
     private JLabel savingsLabel;
 
-    //Theme
-    private final Color PRIMARY = new Color(25, 118, 210); // clean blue
+    // 🎨 Theme
+    private final Color PRIMARY = new Color(25, 118, 210);
     private final Color BACKGROUND = new Color(245, 247, 250);
     private final Color CARD = Color.WHITE;
 
@@ -22,10 +22,6 @@ public class BankTransactionSystemGUI {
     private final Font TEXT = new Font("Segoe UI", Font.PLAIN, 16);
 
     public BankTransactionSystemGUI() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) {}
-
         bank = Bank.loadFromFile();
         showLoginScreen();
     }
@@ -42,7 +38,6 @@ public class BankTransactionSystemGUI {
         };
 
         int option = JOptionPane.showConfirmDialog(null, msg, "Login", JOptionPane.OK_CANCEL_OPTION);
-
         if (option != JOptionPane.OK_OPTION) System.exit(0);
 
         try {
@@ -67,11 +62,12 @@ public class BankTransactionSystemGUI {
         JPasswordField confirm = new JPasswordField();
 
         JLabel strength = new JLabel();
+        strength.setFont(TEXT);
 
         pass.getDocument().addDocumentListener(new DocumentListener() {
             void update() {
                 String s = getStrength(new String(pass.getPassword()));
-                strength.setText(s);
+                strength.setText("Strength: " + s);
                 strength.setForeground(s.equals("Strong") ? PRIMARY : Color.RED);
             }
             public void insertUpdate(DocumentEvent e){update();}
@@ -82,9 +78,9 @@ public class BankTransactionSystemGUI {
         JButton register = createButton("Register");
         JButton cancel = createButton("Cancel");
 
-        d.add(new JLabel("Username")); d.add(user);
-        d.add(new JLabel("Password")); d.add(pass);
-        d.add(new JLabel("Confirm")); d.add(confirm);
+        d.add(label("Username")); d.add(user);
+        d.add(label("Password")); d.add(pass);
+        d.add(label("Confirm")); d.add(confirm);
         d.add(strength); d.add(new JLabel());
         d.add(register); d.add(cancel);
 
@@ -116,8 +112,9 @@ public class BankTransactionSystemGUI {
     // ================= MAIN UI =================
     private void createMainUI() {
 
-        frame = new JFrame("Bank - " + currentAccount.getUsername());
-        frame.setSize(600, 500);
+        frame = new JFrame("Bank System");
+        frame.setMinimumSize(new Dimension(800, 700));
+        frame.setSize(900, 750);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -125,77 +122,180 @@ public class BankTransactionSystemGUI {
         root.setBorder(BorderFactory.createEmptyBorder(15,15,15,15));
         root.setBackground(BACKGROUND);
 
-        // ===== TOP BALANCE =====
-        balanceLabel = new JLabel();
-        balanceLabel.setFont(TITLE);
+        // ===== HEADER (USERNAME + BALANCE) =====
+        JPanel header = new JPanel(new GridLayout(2,1));
+        header.setBackground(BACKGROUND);
+
+        JLabel userLabel = new JLabel("Welcome, " + currentAccount.getUsername());
+        userLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        userLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        balanceLabel = new JLabel("Balance: £" + currentAccount.getBalance());
+        balanceLabel.setFont(new Font("Segoe UI", Font.BOLD, 30));
         balanceLabel.setHorizontalAlignment(SwingConstants.CENTER);
         balanceLabel.setForeground(PRIMARY);
-        updateBalance();
 
-        // ===== MAIN CARD =====
-        JPanel mainCard = createCard("Main Account");
+        header.add(userLabel);
+        header.add(balanceLabel);
 
-        JTextField depositField = new JTextField();
-        JTextField withdrawField = new JTextField();
-        JTextField transferField = new JTextField();
-        JTextField toField = new JTextField();
+        // ===== MAIN ACCOUNT (BIGGER) =====
+        JPanel mainPanel = createCard("Main Account");
+        mainPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
 
-        JButton deposit = createButton("Deposit");
-        JButton withdraw = createButton("Withdraw");
-        JButton transfer = createButton("Transfer");
-        JButton history = createButton("History");
+        gbc.insets = new Insets(12,12,12,12);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
 
-        deposit.addActionListener(e -> handle(() ->
+        int y = 0;
+
+        JTextField depositField = input();
+        JTextField withdrawField = input();
+        JTextField transferField = input();
+        JTextField toField = input();
+
+        JButton depositBtn = createButton("Deposit");
+        JButton withdrawBtn = createButton("Withdraw");
+        JButton transferBtn = createButton("Transfer");
+        JButton historyBtn = createButton("View Transactions");
+
+        // Deposit
+        gbc.gridx=0; gbc.gridy=y;
+        mainPanel.add(label("Deposit amount (£):"), gbc);
+
+        gbc.gridx=1; gbc.weightx=2;
+        mainPanel.add(depositField, gbc);
+
+        gbc.gridx=2; gbc.weightx=0;
+        mainPanel.add(depositBtn, gbc);
+
+        y++;
+
+        // Withdraw
+        gbc.gridx=0; gbc.gridy=y;
+        mainPanel.add(label("Withdraw amount (£):"), gbc);
+
+        gbc.gridx=1; gbc.weightx=2;
+        mainPanel.add(withdrawField, gbc);
+
+        gbc.gridx=2; gbc.weightx=0;
+        mainPanel.add(withdrawBtn, gbc);
+
+        y++;
+
+        // Account ID display
+        JLabel idLabel = new JLabel("Your Account ID: " + currentAccount.getAccountId());
+        idLabel.setFont(TEXT);
+        idLabel.setForeground(Color.GRAY);
+
+        gbc.gridx=0; gbc.gridy=y; gbc.gridwidth=3;
+        mainPanel.add(idLabel, gbc);
+
+        y++; gbc.gridwidth=1;
+
+        // Transfer
+        gbc.gridx=0; gbc.gridy=y;
+        mainPanel.add(label("Transfer to (Account ID):"), gbc);
+
+        gbc.gridx=1;
+        mainPanel.add(toField, gbc);
+
+        y++;
+
+        gbc.gridx=0; gbc.gridy=y;
+        mainPanel.add(label("Transfer amount (£):"), gbc);
+
+        gbc.gridx=1;
+        mainPanel.add(transferField, gbc);
+
+        gbc.gridx=2;
+        mainPanel.add(transferBtn, gbc);
+
+        y++;
+
+        gbc.gridx=1; gbc.gridy=y;
+        mainPanel.add(historyBtn, gbc);
+
+        // ===== ACTIONS =====
+        depositBtn.addActionListener(e -> handle(() ->
                 currentAccount.deposit(Double.parseDouble(depositField.getText()))
         ));
 
-        withdraw.addActionListener(e -> handle(() ->
+        withdrawBtn.addActionListener(e -> handle(() ->
                 currentAccount.withdraw(Double.parseDouble(withdrawField.getText()))
         ));
 
-        transfer.addActionListener(e -> handle(() ->
-                bank.transfer(currentAccount.getAccountId(), toField.getText(),
+        transferBtn.addActionListener(e -> handle(() ->
+                bank.transfer(currentAccount.getAccountId(),
+                        toField.getText(),
                         Double.parseDouble(transferField.getText()))
         ));
 
-        history.addActionListener(e -> showHistory());
+        historyBtn.addActionListener(e -> showHistory());
 
-        mainCard.setLayout(new GridLayout(5,2,10,10));
-        mainCard.add(new JLabel("Deposit")); mainCard.add(depositField);
-        mainCard.add(deposit); mainCard.add(new JLabel());
+        // ===== SAVINGS (SMALLER + INFO) =====
+        JPanel savingsPanel = createCard("Savings Account");
+        savingsPanel.setLayout(new GridBagLayout());
 
-        mainCard.add(new JLabel("Withdraw")); mainCard.add(withdrawField);
-        mainCard.add(withdraw); mainCard.add(new JLabel());
+        GridBagConstraints sgbc = new GridBagConstraints();
+        sgbc.insets = new Insets(8,8,8,8);
+        sgbc.fill = GridBagConstraints.HORIZONTAL;
 
-        mainCard.add(new JLabel("To Account")); mainCard.add(toField);
-        mainCard.add(new JLabel("Amount")); mainCard.add(transferField);
-        mainCard.add(transfer); mainCard.add(history);
+        int sy = 0;
 
-        // ===== SAVINGS CARD =====
-        JPanel savingsCard = createCard("Savings");
+        JLabel info = new JLabel("Savings earns 2% monthly interest. Max 3 withdrawals/month.");
+        info.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        info.setForeground(Color.DARK_GRAY);
 
-        JTextField sDep = new JTextField();
-        JTextField sWith = new JTextField();
+        sgbc.gridx=0; sgbc.gridy=sy; sgbc.gridwidth=3;
+        savingsPanel.add(info, sgbc);
 
-        savingsLabel = new JLabel();
-        updateSavings();
+        sy++; sgbc.gridwidth=1;
 
-        JButton sDeposit = createButton("Deposit");
-        JButton sWithdraw = createButton("Withdraw");
+        JTextField sDep = input();
+        JTextField sWith = input();
 
-        sDeposit.addActionListener(e -> handle(() ->
+        savingsLabel = new JLabel("Savings: £" + currentAccount.getSavingsAccount().getBalance());
+        savingsLabel.setFont(TEXT);
+
+        JButton sDepBtn = createButton("Deposit");
+        JButton sWithBtn = createButton("Withdraw");
+
+        // Deposit
+        sgbc.gridx=0; sgbc.gridy=sy;
+        savingsPanel.add(label("Deposit (£):"), sgbc);
+
+        sgbc.gridx=1;
+        savingsPanel.add(sDep, sgbc);
+
+        sgbc.gridx=2;
+        savingsPanel.add(sDepBtn, sgbc);
+
+        sy++;
+
+        // Withdraw
+        sgbc.gridx=0; sgbc.gridy=sy;
+        savingsPanel.add(label("Withdraw (£):"), sgbc);
+
+        sgbc.gridx=1;
+        savingsPanel.add(sWith, sgbc);
+
+        sgbc.gridx=2;
+        savingsPanel.add(sWithBtn, sgbc);
+
+        sy++;
+
+        sgbc.gridx=1; sgbc.gridy=sy;
+        savingsPanel.add(savingsLabel, sgbc);
+
+        // actions
+        sDepBtn.addActionListener(e -> handle(() ->
                 currentAccount.getSavingsAccount().deposit(Double.parseDouble(sDep.getText()))
         ));
 
-        sWithdraw.addActionListener(e -> handle(() ->
+        sWithBtn.addActionListener(e -> handle(() ->
                 currentAccount.getSavingsAccount().withdraw(Double.parseDouble(sWith.getText()))
         ));
-
-        savingsCard.setLayout(new GridLayout(3,2,10,10));
-        savingsCard.add(new JLabel("Deposit")); savingsCard.add(sDep);
-        savingsCard.add(sDeposit); savingsCard.add(new JLabel());
-        savingsCard.add(new JLabel("Withdraw")); savingsCard.add(sWith);
-        savingsCard.add(sWithdraw); savingsCard.add(savingsLabel);
 
         // ===== LOGOUT =====
         JButton logout = createButton("Logout");
@@ -204,21 +304,56 @@ public class BankTransactionSystemGUI {
             showLoginScreen();
         });
 
-        // ===== LAYOUT =====
-        JPanel center = new JPanel(new GridLayout(2,1,10,10));
+        // ===== LAYOUT (MAIN BIGGER THAN SAVINGS) =====
+        JPanel center = new JPanel(new GridBagLayout());
         center.setBackground(BACKGROUND);
-        center.add(mainCard);
-        center.add(savingsCard);
 
-        root.add(balanceLabel, BorderLayout.NORTH);
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(10,10,10,10);
+        c.fill = GridBagConstraints.BOTH;
+        c.weightx = 1;
+
+        // Main bigger
+        c.gridx = 0; c.gridy = 0;
+        c.weighty = 0.7;
+        center.add(mainPanel, c);
+
+        // Savings smaller
+        c.gridy = 1;
+        c.weighty = 0.3;
+        center.add(savingsPanel, c);
+
+        root.add(header, BorderLayout.NORTH);
         root.add(center, BorderLayout.CENTER);
         root.add(logout, BorderLayout.SOUTH);
 
-        frame.setContentPane(root);
+        JScrollPane scroll = new JScrollPane(root);
+        scroll.setBorder(null);
+
+        frame.setContentPane(scroll);
         frame.setVisible(true);
     }
 
-    // ================= UI HELPERS =================
+    // ================= HELPERS =================
+
+    private JButton createButton(String text) {
+        JButton b = new JButton(text);
+
+        b.setUI(new javax.swing.plaf.basic.BasicButtonUI()); // FIX WHITE BUTTON BUG
+        b.setBackground(PRIMARY);
+        b.setForeground(Color.WHITE);
+
+        b.setFocusPainted(false);
+        b.setBorder(BorderFactory.createEmptyBorder(10,15,10,15));
+        b.setOpaque(true);
+        b.setContentAreaFilled(true);
+
+        b.setFont(TEXT);
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        return b;
+    }
+
     private JPanel createCard(String title) {
         JPanel p = new JPanel();
         p.setBackground(CARD);
@@ -233,21 +368,16 @@ public class BankTransactionSystemGUI {
         return p;
     }
 
-    private JButton createButton(String text) {
-        JButton b = new JButton(text);
+    private JTextField input() {
+        JTextField f = new JTextField();
+        f.setFont(TEXT);
+        return f;
+    }
 
-        b.setBackground(PRIMARY);
-        b.setForeground(Color.WHITE);
-
-        b.setFocusPainted(false);
-        b.setBorderPainted(false);
-        b.setOpaque(true);
-        b.setContentAreaFilled(true);
-
-        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        return b;
+    private JLabel label(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(TEXT);
+        return l;
     }
 
     private void handle(Runnable r) {
@@ -277,6 +407,7 @@ public class BankTransactionSystemGUI {
 
         JTextArea area = new JTextArea(sb.toString());
         area.setEditable(false);
+        area.setFont(TEXT);
 
         JOptionPane.showMessageDialog(frame, new JScrollPane(area), "Transactions", JOptionPane.INFORMATION_MESSAGE);
     }
