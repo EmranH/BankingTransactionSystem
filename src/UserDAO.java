@@ -6,7 +6,7 @@ public class UserDAO {
 
     public static boolean registerUser(String username, String password) {
         String checkSql = "SELECT * FROM users WHERE username = ?";
-        String insertSql = "INSERT INTO users(username, password, balance) VALUES (?, ?, 0)";
+        String insertSql = "INSERT INTO users(username, password_hash, salt, balance) VALUES (?, ?, ?, 0)";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
@@ -15,12 +15,16 @@ public class UserDAO {
             ResultSet rs = checkStmt.executeQuery();
 
             if (rs.next()) {
-                return false;
+                return false; // username exists
             }
+
+            String salt = PasswordUtil.generateSalt();
+            String hashedPassword = PasswordUtil.hashPassword(password, salt);
 
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
                 insertStmt.setString(1, username);
-                insertStmt.setString(2, password);
+                insertStmt.setString(2, hashedPassword);
+                insertStmt.setString(3, salt);
                 insertStmt.executeUpdate();
                 return true;
             }
@@ -32,16 +36,22 @@ public class UserDAO {
     }
 
     public static boolean loginUser(String username, String password) {
-        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        String sql = "SELECT password_hash, salt FROM users WHERE username = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pst = conn.prepareStatement(sql)) {
 
             pst.setString(1, username);
-            pst.setString(2, password);
-
             ResultSet rs = pst.executeQuery();
-            return rs.next();
+
+            if (rs.next()) {
+                String storedHash = rs.getString("password_hash");
+                String storedSalt = rs.getString("salt");
+
+                return PasswordUtil.verifyPassword(password, storedHash, storedSalt);
+            }
+
+            return false;
 
         } catch (Exception e) {
             e.printStackTrace();
