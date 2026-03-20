@@ -10,25 +10,19 @@ public class BankTransactionSystemGUI {
     private CardLayout cardLayout;
     private JPanel mainPanel;
 
-    // Labels for balances
     private JLabel balanceLabel;
     private JLabel savingsLabel;
 
     public BankTransactionSystemGUI() {
-        System.out.println("App started");
 
-        // Load saved bank data
         bank = Bank.loadFromFile();
 
-        // Main window setup
         frame = new JFrame("Bank System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Use CardLayout to switch between pages
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // Add all pages
         mainPanel.add(createLoginPage(), "LOGIN");
         mainPanel.add(createDashboardPage(), "DASHBOARD");
         mainPanel.add(createSavingsPage(), "SAVINGS");
@@ -36,52 +30,33 @@ public class BankTransactionSystemGUI {
 
         frame.setContentPane(mainPanel);
 
-        // Window sizing
-        frame.setMinimumSize(new Dimension(600, 400));
-        frame.setSize(900, 600);
+        frame.setSize(800, 500);
         frame.setLocationRelativeTo(null);
-
         frame.setVisible(true);
 
-        // Start on login screen
         cardLayout.show(mainPanel, "LOGIN");
     }
 
-    // ───────── LOGIN PAGE ─────────
+    // LOGIN PAGE
     private JPanel createLoginPage() {
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new JPanel(new GridLayout(6, 1, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(40, 100, 40, 100));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10,10,10,10);
-
-        JTextField username = new JTextField(15);
-        JPasswordField password = new JPasswordField(15);
+        JTextField username = new JTextField();
+        JPasswordField password = new JPasswordField();
 
         JButton loginBtn = new JButton("Login");
         JButton registerBtn = new JButton("Register");
 
-        // Layout components
-        gbc.gridy = 0;
-        panel.add(new JLabel("Username"), gbc);
+        panel.add(new JLabel("Username"));
+        panel.add(username);
+        panel.add(new JLabel("Password"));
+        panel.add(password);
+        panel.add(loginBtn);
+        panel.add(registerBtn);
 
-        gbc.gridy = 1;
-        panel.add(username, gbc);
-
-        gbc.gridy = 2;
-        panel.add(new JLabel("Password"), gbc);
-
-        gbc.gridy = 3;
-        panel.add(password, gbc);
-
-        gbc.gridy = 4;
-        panel.add(loginBtn, gbc);
-
-        gbc.gridy = 5;
-        panel.add(registerBtn, gbc);
-
-        // Login logic
+        // LOGIN
         loginBtn.addActionListener(e -> {
             try {
                 currentAccount = bank.getAccount(username.getText());
@@ -93,7 +68,7 @@ public class BankTransactionSystemGUI {
             }
         });
 
-        // Register logic
+        // REGISTER
         registerBtn.addActionListener(e -> {
             try {
                 bank.createAccount(username.getText(), 0);
@@ -107,65 +82,32 @@ public class BankTransactionSystemGUI {
         return panel;
     }
 
-    // ───────── DASHBOARD ─────────
+    // DASHBOARD
     private JPanel createDashboardPage() {
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
+        JPanel panel = new JPanel(new GridLayout(6, 1, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(40, 100, 40, 100));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1;
+        balanceLabel = new JLabel("", SwingConstants.CENTER);
+        balanceLabel.setFont(new Font("Arial", Font.BOLD, 20));
 
-        // Balance display
-        balanceLabel = new JLabel();
-        balanceLabel.setFont(new Font("Arial", Font.BOLD, 26));
-        balanceLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(balanceLabel, gbc);
-
-        // Input field
         JTextField amountField = new JTextField();
 
-        gbc.gridy = 1;
-        panel.add(amountField, gbc);
-
-        // Deposit / Withdraw buttons
         JButton depositBtn = new JButton("Deposit");
         JButton withdrawBtn = new JButton("Withdraw");
-
-        gbc.gridwidth = 1;
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        panel.add(depositBtn, gbc);
-
-        gbc.gridx = 1;
-        panel.add(withdrawBtn, gbc);
-
-        // Navigation buttons
         JButton savingsBtn = new JButton("Savings");
         JButton historyBtn = new JButton("Transactions");
-
-        gbc.gridy = 3;
-        gbc.gridx = 0;
-        panel.add(savingsBtn, gbc);
-
-        gbc.gridx = 1;
-        panel.add(historyBtn, gbc);
-
-        // Logout button
         JButton logoutBtn = new JButton("Logout");
 
-        gbc.gridy = 4;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
-        panel.add(logoutBtn, gbc);
+        panel.add(balanceLabel);
+        panel.add(amountField);
+        panel.add(depositBtn);
+        panel.add(withdrawBtn);
+        panel.add(savingsBtn);
+        panel.add(historyBtn);
+        panel.add(logoutBtn);
 
-        // Deposit action
+        // DEPOSIT
         depositBtn.addActionListener(e -> {
             try {
                 currentAccount.deposit(Double.parseDouble(amountField.getText()));
@@ -176,7 +118,7 @@ public class BankTransactionSystemGUI {
             }
         });
 
-        // Withdraw action
+        // WITHDRAW
         withdrawBtn.addActionListener(e -> {
             try {
                 currentAccount.withdraw(Double.parseDouble(amountField.getText()));
@@ -187,16 +129,13 @@ public class BankTransactionSystemGUI {
             }
         });
 
-        // Navigate to savings page
         savingsBtn.addActionListener(e -> {
             updateSavings();
             cardLayout.show(mainPanel, "SAVINGS");
         });
 
-        // Navigate to history page
         historyBtn.addActionListener(e -> cardLayout.show(mainPanel, "HISTORY"));
 
-        // Logout
         logoutBtn.addActionListener(e -> {
             currentAccount = null;
             cardLayout.show(mainPanel, "LOGIN");
@@ -205,51 +144,27 @@ public class BankTransactionSystemGUI {
         return panel;
     }
 
-    // ───────── SAVINGS PAGE ─────────
+    // SAVINGS PAGE
     private JPanel createSavingsPage() {
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
+        JPanel panel = new JPanel(new GridLayout(5, 1, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(40, 100, 40, 100));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10,10,10,10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1;
-
-        // Savings balance display
-        savingsLabel = new JLabel();
-        savingsLabel.setFont(new Font("Arial", Font.BOLD, 22));
-        savingsLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(savingsLabel, gbc);
+        savingsLabel = new JLabel("", SwingConstants.CENTER);
+        savingsLabel.setFont(new Font("Arial", Font.BOLD, 20));
 
         JTextField amount = new JTextField();
 
-        gbc.gridy = 1;
-        panel.add(amount, gbc);
-
         JButton deposit = new JButton("Deposit");
         JButton withdraw = new JButton("Withdraw");
-
-        gbc.gridwidth = 1;
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        panel.add(deposit, gbc);
-
-        gbc.gridx = 1;
-        panel.add(withdraw, gbc);
-
         JButton back = new JButton("Back");
 
-        gbc.gridy = 3;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
-        panel.add(back, gbc);
+        panel.add(savingsLabel);
+        panel.add(amount);
+        panel.add(deposit);
+        panel.add(withdraw);
+        panel.add(back);
 
-        // Deposit into savings
         deposit.addActionListener(e -> {
             try {
                 currentAccount.getSavingsAccount().deposit(Double.parseDouble(amount.getText()));
@@ -260,7 +175,6 @@ public class BankTransactionSystemGUI {
             }
         });
 
-        // Withdraw from savings
         withdraw.addActionListener(e -> {
             try {
                 currentAccount.getSavingsAccount().withdraw(Double.parseDouble(amount.getText()));
@@ -271,13 +185,12 @@ public class BankTransactionSystemGUI {
             }
         });
 
-        // Back to dashboard
         back.addActionListener(e -> cardLayout.show(mainPanel, "DASHBOARD"));
 
         return panel;
     }
 
-    // ───────── HISTORY PAGE ─────────
+    // HISTORY PAGE
     private JPanel createHistoryPage() {
 
         JPanel panel = new JPanel(new BorderLayout());
@@ -292,44 +205,32 @@ public class BankTransactionSystemGUI {
         panel.add(scroll, BorderLayout.CENTER);
         panel.add(back, BorderLayout.SOUTH);
 
-        // Back to dashboard
         back.addActionListener(e -> cardLayout.show(mainPanel, "DASHBOARD"));
 
-        // Load transactions when page opens
         panel.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentShown(java.awt.event.ComponentEvent evt) {
-                StringBuilder text = new StringBuilder();
-                for (Transaction t : currentAccount.getTransactionHistory()) {
-                    text.append(t.toString()).append("\n");
+                if (currentAccount != null) {
+                    StringBuilder text = new StringBuilder();
+                    for (Transaction t : currentAccount.getTransactionHistory()) {
+                        text.append(t.toString()).append("\n");
+                    }
+                    area.setText(text.toString());
                 }
-                area.setText(text.toString());
             }
         });
 
         return panel;
     }
 
-    // ───────── HELPERS ─────────
-
-    // Update main balance label
+    // HELPERS
     private void updateBalance() {
-        if (currentAccount != null) {
-            balanceLabel.setText("Balance: £" + currentAccount.getBalance());
-        } else {
-            balanceLabel.setText("Balance: £0.00");
-        }
+        balanceLabel.setText("Balance: £" + currentAccount.getBalance());
     }
 
-    // Update savings balance label
     private void updateSavings() {
-        if (currentAccount != null && currentAccount.getSavingsAccount() != null) {
-            savingsLabel.setText("Savings: £" + currentAccount.getSavingsAccount().getBalance());
-        } else {
-            savingsLabel.setText("Savings: £0.00");
-        }
+        savingsLabel.setText("Savings: £" + currentAccount.getSavingsAccount().getBalance());
     }
 
-    // Show error popup
     private void showError(String msg) {
         JOptionPane.showMessageDialog(frame, msg);
     }
