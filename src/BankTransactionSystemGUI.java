@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class BankTransactionSystemGUI {
 
@@ -7,329 +9,229 @@ public class BankTransactionSystemGUI {
     private BankAccount currentAccount;
 
     private JFrame frame;
-    private CardLayout cardLayout;
-    private JPanel mainPanel;
-
-    // Labels for balances
     private JLabel balanceLabel;
-    private JLabel savingsLabel;
+    private JLabel savingsBalanceLabel;
 
     public BankTransactionSystemGUI() {
-        System.out.println("App started");
-
-        // Load saved bank data
         bank = Bank.loadFromFile();
+        showLoginScreen();
+    }
 
-        // Main window setup
-        frame = new JFrame("Bank System");
+    // ---------- LOGIN ----------
+    private void showLoginScreen() {
+
+        JTextField usernameField = new JTextField();
+        JPasswordField passwordField = new JPasswordField();
+
+        Object[] message = {
+                "Username:", usernameField,
+                "Password:", passwordField
+        };
+
+        int option = JOptionPane.showConfirmDialog(null, message, "Login", JOptionPane.OK_CANCEL_OPTION);
+
+        if (option != JOptionPane.OK_OPTION) {
+            System.exit(0);
+        }
+
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword()).trim();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Username and password cannot be empty.");
+            showLoginScreen();
+            return;
+        }
+
+        try {
+            currentAccount = bank.login(username, password);
+            createMainUI();
+        } catch (Exception e) {
+            int choice = JOptionPane.showConfirmDialog(
+                    null,
+                    "Login failed.\nCreate a new account?",
+                    "Account Not Found",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                showRegisterScreen();
+            } else {
+                showLoginScreen();
+            }
+        }
+    }
+
+    // ---------- REGISTER ----------
+    private void showRegisterScreen() {
+
+        JDialog dialog = new JDialog((Frame) null, "Register", true);
+        dialog.setSize(400, 300);
+        dialog.setLayout(new GridLayout(6, 2, 5, 5));
+
+        JTextField username = new JTextField();
+        JPasswordField password = new JPasswordField();
+        JPasswordField confirm = new JPasswordField();
+
+        JLabel strengthLabel = new JLabel("Strength:");
+
+        password.getDocument().addDocumentListener(new DocumentListener() {
+            private void update() {
+                String strength = getPasswordStrength(new String(password.getPassword()));
+                strengthLabel.setText("Strength: " + strength);
+                strengthLabel.setForeground(getStrengthColor(strength));
+            }
+
+            public void insertUpdate(DocumentEvent e) { update(); }
+            public void removeUpdate(DocumentEvent e) { update(); }
+            public void changedUpdate(DocumentEvent e) { update(); }
+        });
+
+        JButton registerBtn = new JButton("Register");
+        JButton cancelBtn = new JButton("Cancel");
+
+        dialog.add(new JLabel("Username:"));
+        dialog.add(username);
+
+        dialog.add(new JLabel("Password:"));
+        dialog.add(password);
+
+        dialog.add(new JLabel("Confirm:"));
+        dialog.add(confirm);
+
+        dialog.add(strengthLabel);
+        dialog.add(new JLabel());
+
+        dialog.add(registerBtn);
+        dialog.add(cancelBtn);
+
+        registerBtn.addActionListener(e -> {
+            String user = username.getText().trim();
+            String pass = new String(password.getPassword());
+            String conf = new String(confirm.getPassword());
+
+            if (user.isEmpty() || pass.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Fields cannot be empty");
+                return;
+            }
+
+            if (!pass.equals(conf)) {
+                JOptionPane.showMessageDialog(dialog, "Passwords do not match");
+                return;
+            }
+
+            if (getPasswordStrength(pass).equals("Weak")) {
+                JOptionPane.showMessageDialog(dialog, "Password too weak");
+                return;
+            }
+
+            try {
+                bank.createAccount(user, pass, 0);
+                bank.saveToFile();
+                JOptionPane.showMessageDialog(dialog, "Account created!");
+                dialog.dispose();
+                showLoginScreen();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Username exists");
+            }
+        });
+
+        cancelBtn.addActionListener(e -> {
+            dialog.dispose();
+            showLoginScreen();
+        });
+
+        dialog.setLocationRelativeTo(null);
+        dialog.setVisible(true);
+    }
+
+    // ---------- PASSWORD STRENGTH ----------
+    private String getPasswordStrength(String password) {
+        boolean upper = password.matches(".*[A-Z].*");
+        boolean lower = password.matches(".*[a-z].*");
+        boolean digit = password.matches(".*\\d.*");
+
+        int score = 0;
+        if (password.length() >= 8) score++;
+        if (upper) score++;
+        if (lower) score++;
+        if (digit) score++;
+
+        if (score <= 2) return "Weak";
+        if (score == 3) return "Medium";
+        return "Strong";
+    }
+
+    private Color getStrengthColor(String s) {
+        switch (s) {
+            case "Weak": return Color.RED;
+            case "Medium": return Color.ORANGE;
+            case "Strong": return new Color(0,128,0);
+            default: return Color.BLACK;
+        }
+    }
+
+    // ---------- MAIN UI ----------
+    private void createMainUI() {
+
+        frame = new JFrame("Bank - " + currentAccount.getUsername());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Use CardLayout to switch between pages
-        cardLayout = new CardLayout();
-        mainPanel = new JPanel(cardLayout);
+        JTextField depositField = new JTextField(10);
+        JTextField withdrawField = new JTextField(10);
 
-        // Add all pages
-        mainPanel.add(createLoginPage(), "LOGIN");
-        mainPanel.add(createDashboardPage(), "DASHBOARD");
-        mainPanel.add(createSavingsPage(), "SAVINGS");
-        mainPanel.add(createHistoryPage(), "HISTORY");
-
-        frame.setContentPane(mainPanel);
-
-        // Window sizing
-        frame.setMinimumSize(new Dimension(600, 400));
-        frame.setSize(900, 600);
-        frame.setLocationRelativeTo(null);
-
-        frame.setVisible(true);
-
-        // Start on login screen
-        cardLayout.show(mainPanel, "LOGIN");
-    }
-
-    // ───────── LOGIN PAGE ─────────
-    private JPanel createLoginPage() {
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10,10,10,10);
-
-        JTextField username = new JTextField(15);
-        JPasswordField password = new JPasswordField(15);
-
-        JButton loginBtn = new JButton("Login");
-        JButton registerBtn = new JButton("Register");
-
-        // Layout components
-        gbc.gridy = 0;
-        panel.add(new JLabel("Username"), gbc);
-
-        gbc.gridy = 1;
-        panel.add(username, gbc);
-
-        gbc.gridy = 2;
-        panel.add(new JLabel("Password"), gbc);
-
-        gbc.gridy = 3;
-        panel.add(password, gbc);
-
-        gbc.gridy = 4;
-        panel.add(loginBtn, gbc);
-
-        gbc.gridy = 5;
-        panel.add(registerBtn, gbc);
-
-        // Login logic
-        loginBtn.addActionListener(e -> {
-            try {
-                currentAccount = bank.getAccount(username.getText());
-                updateBalance();
-                updateSavings();
-                cardLayout.show(mainPanel, "DASHBOARD");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, "Login failed");
-            }
-        });
-
-        // Register logic
-        registerBtn.addActionListener(e -> {
-            try {
-                bank.createAccount(username.getText(), 0);
-                bank.saveToFile();
-                JOptionPane.showMessageDialog(frame, "Account created!");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, "Username exists");
-            }
-        });
-
-        return panel;
-    }
-
-    // ───────── DASHBOARD ─────────
-    private JPanel createDashboardPage() {
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1;
-
-        // Balance display
         balanceLabel = new JLabel();
-        balanceLabel.setFont(new Font("Arial", Font.BOLD, 26));
-        balanceLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(balanceLabel, gbc);
-
-        // Input field
-        JTextField amountField = new JTextField();
-
-        gbc.gridy = 1;
-        panel.add(amountField, gbc);
-
-        // Deposit / Withdraw buttons
-        JButton depositBtn = new JButton("Deposit");
-        JButton withdrawBtn = new JButton("Withdraw");
-
-        gbc.gridwidth = 1;
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        panel.add(depositBtn, gbc);
-
-        gbc.gridx = 1;
-        panel.add(withdrawBtn, gbc);
-
-        // Navigation buttons
-        JButton savingsBtn = new JButton("Savings");
-        JButton historyBtn = new JButton("Transactions");
-
-        gbc.gridy = 3;
-        gbc.gridx = 0;
-        panel.add(savingsBtn, gbc);
-
-        gbc.gridx = 1;
-        panel.add(historyBtn, gbc);
-
-        // Logout button
-        JButton logoutBtn = new JButton("Logout");
-
-        gbc.gridy = 4;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
-        panel.add(logoutBtn, gbc);
-
-        // Deposit action
-        depositBtn.addActionListener(e -> {
-            try {
-                currentAccount.deposit(Double.parseDouble(amountField.getText()));
-                bank.saveToFile();
-                updateBalance();
-            } catch (Exception ex) {
-                showError(ex.getMessage());
-            }
-        });
-
-        // Withdraw action
-        withdrawBtn.addActionListener(e -> {
-            try {
-                currentAccount.withdraw(Double.parseDouble(amountField.getText()));
-                bank.saveToFile();
-                updateBalance();
-            } catch (Exception ex) {
-                showError(ex.getMessage());
-            }
-        });
-
-        // Navigate to savings page
-        savingsBtn.addActionListener(e -> {
-            updateSavings();
-            cardLayout.show(mainPanel, "SAVINGS");
-        });
-
-        // Navigate to history page
-        historyBtn.addActionListener(e -> cardLayout.show(mainPanel, "HISTORY"));
-
-        // Logout
-        logoutBtn.addActionListener(e -> {
-            currentAccount = null;
-            cardLayout.show(mainPanel, "LOGIN");
-        });
-
-        return panel;
-    }
-
-    // ───────── SAVINGS PAGE ─────────
-    private JPanel createSavingsPage() {
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10,10,10,10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1;
-
-        // Savings balance display
-        savingsLabel = new JLabel();
-        savingsLabel.setFont(new Font("Arial", Font.BOLD, 22));
-        savingsLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(savingsLabel, gbc);
-
-        JTextField amount = new JTextField();
-
-        gbc.gridy = 1;
-        panel.add(amount, gbc);
+        updateBalanceLabel();
 
         JButton deposit = new JButton("Deposit");
         JButton withdraw = new JButton("Withdraw");
+        JButton logout = new JButton("Logout");
 
-        gbc.gridwidth = 1;
-        gbc.gridy = 2;
-        gbc.gridx = 0;
-        panel.add(deposit, gbc);
-
-        gbc.gridx = 1;
-        panel.add(withdraw, gbc);
-
-        JButton back = new JButton("Back");
-
-        gbc.gridy = 3;
-        gbc.gridx = 0;
-        gbc.gridwidth = 2;
-        panel.add(back, gbc);
-
-        // Deposit into savings
         deposit.addActionListener(e -> {
             try {
-                currentAccount.getSavingsAccount().deposit(Double.parseDouble(amount.getText()));
+                currentAccount.deposit(Double.parseDouble(depositField.getText()));
                 bank.saveToFile();
-                updateSavings();
-            } catch (Exception ex) {
-                showError(ex.getMessage());
-            }
+                updateBalanceLabel();
+            } catch (Exception ex) { showError(ex.getMessage()); }
         });
 
-        // Withdraw from savings
         withdraw.addActionListener(e -> {
             try {
-                currentAccount.getSavingsAccount().withdraw(Double.parseDouble(amount.getText()));
+                currentAccount.withdraw(Double.parseDouble(withdrawField.getText()));
                 bank.saveToFile();
-                updateSavings();
-            } catch (Exception ex) {
-                showError(ex.getMessage());
-            }
+                updateBalanceLabel();
+            } catch (Exception ex) { showError(ex.getMessage()); }
         });
 
-        // Back to dashboard
-        back.addActionListener(e -> cardLayout.show(mainPanel, "DASHBOARD"));
-
-        return panel;
-    }
-
-    // ───────── HISTORY PAGE ─────────
-    private JPanel createHistoryPage() {
-
-        JPanel panel = new JPanel(new BorderLayout());
-
-        JTextArea area = new JTextArea();
-        area.setEditable(false);
-
-        JScrollPane scroll = new JScrollPane(area);
-
-        JButton back = new JButton("Back");
-
-        panel.add(scroll, BorderLayout.CENTER);
-        panel.add(back, BorderLayout.SOUTH);
-
-        // Back to dashboard
-        back.addActionListener(e -> cardLayout.show(mainPanel, "DASHBOARD"));
-
-        // Load transactions when page opens
-        panel.addComponentListener(new java.awt.event.ComponentAdapter() {
-            public void componentShown(java.awt.event.ComponentEvent evt) {
-                StringBuilder text = new StringBuilder();
-                for (Transaction t : currentAccount.getTransactionHistory()) {
-                    text.append(t.toString()).append("\n");
-                }
-                area.setText(text.toString());
-            }
+        logout.addActionListener(e -> {
+            frame.dispose();
+            showLoginScreen();
         });
 
-        return panel;
+        JPanel panel = new JPanel(new GridLayout(6,2,5,5));
+
+        panel.add(new JLabel("Deposit:"));
+        panel.add(depositField);
+        panel.add(deposit);
+
+        panel.add(new JLabel("Withdraw:"));
+        panel.add(withdrawField);
+        panel.add(withdraw);
+
+        panel.add(balanceLabel);
+        panel.add(logout);
+
+        frame.add(panel);
+        frame.setSize(400,300);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 
-    // ───────── HELPERS ─────────
-
-    // Update main balance label
-    private void updateBalance() {
-        if (currentAccount != null) {
-            balanceLabel.setText("Balance: £" + currentAccount.getBalance());
-        } else {
-            balanceLabel.setText("Balance: £0.00");
-        }
+    // ---------- HELPERS ----------
+    private void updateBalanceLabel() {
+        balanceLabel.setText("Balance: £" + currentAccount.getBalance());
     }
 
-    // Update savings balance label
-    private void updateSavings() {
-        if (currentAccount != null && currentAccount.getSavingsAccount() != null) {
-            savingsLabel.setText("Savings: £" + currentAccount.getSavingsAccount().getBalance());
-        } else {
-            savingsLabel.setText("Savings: £0.00");
-        }
-    }
-
-    // Show error popup
     private void showError(String msg) {
         JOptionPane.showMessageDialog(frame, msg);
     }

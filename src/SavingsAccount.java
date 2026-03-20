@@ -27,8 +27,8 @@ public class SavingsAccount extends BankAccount {
      * Creates a savings account with login credentials and an initial balance.
      * Calls the parent BankAccount constructor to set up shared fields.
      */
-    public SavingsAccount(String accountId, String username, double initialBalance) {
-        super(accountId, username, initialBalance);
+    public SavingsAccount(String accountId, String username, String password, double initialBalance) {
+        super(accountId, username, password, initialBalance);
     }
 
     /**

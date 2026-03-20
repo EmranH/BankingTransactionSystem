@@ -19,6 +19,8 @@ public class BankAccount implements Serializable {
     // User identity fields
     private final String username;
     private final String accountId;
+    private final String password;
+
 
     // Each user has a savings account linked to their main account
     private final SavingsAccount savingsAccount;
@@ -27,16 +29,20 @@ public class BankAccount implements Serializable {
      * Creates a bank account.
      * Automatically creates a linked SavingsAccount with a zero starting balance.
      */
-    public BankAccount(String accountId, String username, double initialBalance) {
+    public BankAccount(String accountId, String username, String password, double initialBalance) {
         this.accountId = accountId;
         this.username = username;
+        this.password = password;
         this.balance = initialBalance;
         this.transactions = new ArrayList<>();
 
-        // Automatically create a savings account linked to this account
         this.savingsAccount = accountId.endsWith("-SAV")
                 ? null
-                : new SavingsAccount(accountId + "-SAV", username, 0);
+                : new SavingsAccount(accountId + "-SAV", username, password, 0);
+    }
+
+    public boolean authenticate(String username, String password) {
+        return this.username.equals(username) && this.password.equals(password);
     }
 
     public String getUsername() {

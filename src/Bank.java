@@ -50,16 +50,27 @@ public class Bank implements Serializable {
     /**
      * Creates a new user account.
      */
-    public synchronized String createAccount(String username, double initialBalance) {
+    public synchronized String createAccount(String username, String password, double initialBalance) {
         if (accountsByUsername.containsKey(username)) {
             throw new IllegalArgumentException("Username already exists.");
         }
 
         String accountId = generateAccountId();
-        BankAccount account = new BankAccount(accountId, username, initialBalance);
+        BankAccount account = new BankAccount(accountId, username, password, initialBalance);
         accountsByUsername.put(username, account);
 
         return accountId;
+    }
+
+    public synchronized BankAccount login(String username, String password) {
+
+        BankAccount account = accountsByUsername.get(username);
+
+        if (account == null || !account.authenticate(username, password)) {
+            throw new IllegalArgumentException("Invalid username or password.");
+        }
+
+        return account;
     }
 
     /**
